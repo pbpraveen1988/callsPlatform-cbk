@@ -14,7 +14,7 @@ const { PUBLIC_FOLDER_NAME } = require("./global/constants");
 
 
 const app = express();
-const SERVER_PORT = process.env.PORT || 3002;
+const SERVER_PORT = process.env.PORT || 3012;
 
 var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
 dotenv.config();
@@ -62,7 +62,6 @@ db_connect
     routes.assignRoutes(app);
     app.listen(SERVER_PORT);
     console.log(`Server listening on port ` + SERVER_PORT);
-    startCallsCronJob();
   })
   .catch((err) => {
     console.log("Error: " + err);
