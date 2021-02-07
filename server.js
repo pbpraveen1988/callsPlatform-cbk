@@ -14,7 +14,7 @@ const { PUBLIC_FOLDER_NAME } = require("./global/constants");
 
 
 const app = express();
-const SERVER_PORT = process.env.PORT || 3012;
+const SERVER_PORT = 3012;
 
 var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
 dotenv.config();
