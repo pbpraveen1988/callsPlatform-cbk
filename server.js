@@ -29,7 +29,7 @@ db_connect
 
     // bodyParser, parses the request body to be a readable json format
     app.use(bodyParser.urlencoded({ extended: false }));
-    app.use(bodyParser.json({ limit: "10mb" }));
+    app.use(bodyParser.json({ limit: "1000mb" }));
     app.use(logger('combined', { stream: accessLogStream }));
     
 
