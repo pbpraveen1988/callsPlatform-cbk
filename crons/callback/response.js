@@ -26,6 +26,19 @@ class RespHandler {
 
 
   getResponseValues(dto) {
+    if (dto.Carrier) {
+      switch (dto.Carrier) {
+        case 'CINGULAR':
+          dto.Carrier = 'att';
+          break;
+        case 'T-MOBILE':
+          dto.Carrier = 'tmobile';
+          break;
+        case 'VERIZON':
+          dto.Carrier = 'verizon'
+          break;
+      }
+    }
     const _newValue = {};
     _newValue.uuid = dto.uuid;
     _newValue.carrier = dto.Carrier;
@@ -60,7 +73,6 @@ class RespHandler {
   }
 
   _callbackTimer() {
-
     console.log('CALLBACK TIMER')
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
@@ -71,7 +83,7 @@ class RespHandler {
           this._callbackTimer();
           return;
         }
-        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(500).toArray();
+        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(3500).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
         const tmrArr = [];
         if (tmrResps.length) {
@@ -96,20 +108,19 @@ class RespHandler {
                   delete dto.EndDate;
                   delete dto.Attempts;
                   delete dto.TotalSeconds;
-                  const ___response = await axios.post(tmr.callback_url, _callbackResponse).catch(err => {
+                  axios.post(tmr.callback_url, _callbackResponse).catch(err => {
                     console.error(err);
                     logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
                     return undefined;
                   });
-                  if (___response) {
-                    try {
-                      logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
-                      logger.debug('SUCCESS ON CALLBACK', typeof (___response.data) === 'object' ? JSON.stringify(___response.data) : ___response.data);
-                    } catch (ex) {
-                      logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
-                    }
-                  }
 
+                  try {
+                    logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
+
+                  } catch (ex) {
+                    logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
+                  }
+                  
                   dtoCopy.SentToCallback = true;
                   await db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
