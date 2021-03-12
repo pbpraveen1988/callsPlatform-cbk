@@ -116,11 +116,10 @@ class RespHandler {
 
                   try {
                     logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
-
                   } catch (ex) {
                     logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
                   }
-                  
+
                   dtoCopy.SentToCallback = true;
                   await db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
@@ -200,6 +199,83 @@ class RespHandler {
         return;
       }
     }, 10 * 500);
+  }
+
+
+
+
+  _callbackTimer() {
+    console.log('CALLBACK TIMER')
+    if (this._callbackTimerObj) { return; }
+    this._callbackTimerObj = setTimeout(async () => {
+      try {
+        const db = RinglessDB();
+        if (!db) {
+          this._callbackTimerObj = null;
+          this._callbackTimer();
+          return;
+        }
+        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(3500).toArray();
+        console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
+        const tmrArr = [];
+        if (tmrResps.length) {
+          tmrResps.forEach(async tmr => {
+            if (tmr.callback_url) {
+             
+              try {
+                const dto = tmr;
+                try {
+                  console.log('CALLBACK Record drop id', dto.DropId);
+                  logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
+                } catch (ex) {
+
+                }
+                const _callbackResponse = this.getResponseValues(dto);
+                const dtoCopy = Object.assign({}, dto);
+                delete dtoCopy._id;
+                delete dto._id;
+                delete dto.CallId;
+                delete dto.SentToCallback;
+                delete dto.DateCreated;
+                delete dto.StartDate;
+                delete dto.EndDate;
+                delete dto.Attempts;
+                delete dto.TotalSeconds;
+                axios.post(tmr.callback_url, _callbackResponse).catch(err => {
+                  console.error(err);
+                  logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
+                  return undefined;
+                });
+
+                try {
+                  logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
+                } catch (ex) {
+                  logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
+                }
+
+                dtoCopy.SentToCallback = true;
+                await db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                await db.collection('responses').deleteOne({ DropId: dto.DropId })
+               
+              } catch (err) {
+                console.error('CALLBACK ERROR', err);
+                process.send({ action: 'debug', message: err.stack });
+               
+              }
+            }
+          });
+        }
+        this._callbackTimerObj = null;
+        this._callbackTimer();
+        return;
+      } catch (err) {
+        process.send({ action: 'debug', message: err.stack });
+        this._callbackTimerObj = null;
+        this._callbackTimer();
+        return;
+      }
+    }, 1000);
   }
 };
 
