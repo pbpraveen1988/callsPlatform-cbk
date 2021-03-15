@@ -70,6 +70,12 @@ if (cluster.isMaster) {
         res.download(file); // Set disposition and send it.
       });
 
+      
+    app.get('/download/log/:id', function (req, res) {
+      res.download(file); // Set disposition and send it.
+    });
+
+
       app.get('/ccfuel-logs-download', function (req, res) {
         const file = `${__dirname}/public/debug.log`;
         res.download(file); // Set disposition and send it.
