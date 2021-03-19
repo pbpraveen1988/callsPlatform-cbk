@@ -39,6 +39,9 @@ class RespHandler {
           break;
       }
     }
+
+     
+
     const _newValue = {};
     _newValue.uuid = dto.uuid;
     _newValue.carrier = dto.Carrier;
@@ -46,7 +49,7 @@ class RespHandler {
     _newValue.timestamp = new Date();
     _newValue.number = dto.PhoneTo;
     _newValue.drop_callerid = dto.PhoneFrom;
-    _newValue.error_message = dto.ErrorMessage;
+    _newValue.error_message = dto.ErrorMessage ;
     if (_newValue.error_message != undefined && _newValue.error_message != '') {
       _newValue.status = 'failed';
     }
@@ -83,7 +86,7 @@ class RespHandler {
           this._callbackTimer();
           return;
         }
-        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(3500).toArray();
+        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
         const tmrArr = [];
         if (tmrResps.length) {
