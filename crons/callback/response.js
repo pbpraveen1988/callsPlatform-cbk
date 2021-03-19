@@ -78,7 +78,7 @@ class RespHandler {
   _callbackTimer() {
     console.log('CALLBACK TIMER')
    // if (this._callbackTimerObj) { return; }
-    this._callbackTimerObj = setTimeout(async () => {
+    setTimeout(async () => {
       try {
         const db = RinglessDB();
         if (!db) {
@@ -146,12 +146,12 @@ class RespHandler {
           }
         }
 
-        this._callbackTimerObj = null;
+      //  this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       } catch (err) {
         process.send({ action: 'debug', message: err.stack });
-        this._callbackTimerObj = null;
+       // this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       }
