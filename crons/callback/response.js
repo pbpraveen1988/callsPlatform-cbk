@@ -138,7 +138,7 @@ class RespHandler {
             }
             try {
               process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
-              await Promise.allSettled(tmrArr);
+             // await Promise.allSettled(tmrArr);
               process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
             } catch (err) {
               process.send({ action: 'debug', message: err.stack });
