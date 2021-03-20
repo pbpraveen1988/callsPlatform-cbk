@@ -80,11 +80,12 @@ class RespHandler {
 
 
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK
- _callbackTimer() {
+  _callbackTimer() {
     console.log('CALLBACK TIMER');
 
     const db = RinglessDB();
-    if (!db) {
+    if (!this._db) {
+      console.log('DB NOT FOUND');
       this._callbackTimer();
       return;
     }
@@ -101,7 +102,7 @@ class RespHandler {
               try {
                 const dto = tmr;
                 try {
-                 // console.log('CALLBACK Record drop id', dto.DropId);
+                  // console.log('CALLBACK Record drop id', dto.DropId);
                   logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
                 } catch (ex) {
 
