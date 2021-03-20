@@ -20,7 +20,7 @@ class RespHandler {
   async initDB() {
     const mongoUrl = 'mongodb://127.0.0.1:27017/RinglessVM';
     const mongoDBName = 'RinglessVM';
-    this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, poolSize: 2000, useUnifiedTopology: true });
+    this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, poolSize: 200, useUnifiedTopology: true });
     this._db = this._conn.db(mongoDBName);
     RinglessDB(this._db);
   }
