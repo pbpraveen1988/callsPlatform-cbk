@@ -81,11 +81,11 @@ exports.DBConnectMongoose = function () {
       .then(async () => {
         db = mongoose.connection;
         console.log("mongo connection created");
-        const _conn = await MongoClient.connect(mongo_rm, { useNewUrlParser: true, poolSize: 60 });
-        _db = _conn.db(mongoDB);
-        console.log("Ringless connection created");
-        RinglessDB(_db);
-        resolve({ calls: db, ringless: _db });
+        // const _conn = await MongoClient.connect(mongo_rm, { useNewUrlParser: true, poolSize: 60 });
+        // _db = _conn.db(mongoDB);
+        // console.log("Ringless connection created");
+        // RinglessDB(_db);
+        resolve({ calls: db });
 
       })
       .catch((error) => {

@@ -20,7 +20,7 @@ class RespHandler {
     if (!this._db) {
       const mongoUrl = 'mongodb://127.0.0.1:27017/RinglessVM';
       const mongoDBName = 'RinglessVM';
-      this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, poolSize: 200 });
+      this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, poolSize: 400 });
       this._db = this._conn.db(mongoDBName);
       RinglessDB(this._db);
     }
