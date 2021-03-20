@@ -136,13 +136,15 @@ class RespHandler {
               });
               tmrArr.push(pro);
             }
-            try {
-              process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
-              Promise.allSettled(tmrArr);
-              process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
-            } catch (err) {
-              process.send({ action: 'debug', message: err.stack });
-            }
+          }
+
+
+          try {
+            process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
+            Promise.allSettled(tmrArr);
+            process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
+          } catch (err) {
+            process.send({ action: 'debug', message: err.stack });
           }
         }
 
