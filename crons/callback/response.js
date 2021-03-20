@@ -225,7 +225,7 @@ class RespHandler {
         if (tmrResps.length) {
           tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
-              this.selectedNumbers.push(dto.DropId);
+              this.selectedNumbers.push(tmr.DropId);
               try {
                 const dto = tmr;
                 try {
