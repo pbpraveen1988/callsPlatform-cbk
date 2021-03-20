@@ -79,82 +79,83 @@ class RespHandler {
 
 
 
-  // CURRENTLY USING THIS FUNCTION FOR CALLBACK
+  // CURRENTLY USING THIS FUNCTION FOR CALLBACK 
   _callbackTimer() {
-    console.log('CALLBACK TIMER');
-
-    const db = RinglessDB();
-    if (!this._db) {
-      console.log('DB NOT FOUND');
-      this._callbackTimer();
-      return;
-    }
-    // if (this._callbackTimerObj) { return; }
-    setTimeout(async () => {
+    console.log('CALLBACK TIMER')
+    if (this._callbackTimerObj) { return; }
+    this._callbackTimerObj = setTimeout(async () => {
       try {
-        const tmrResps = await db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(1000).toArray();
+        const tmrResps = await this._db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
         const tmrArr = [];
         if (tmrResps.length) {
-          tmrResps.forEach(async tmr => {
+          for (const tmr of tmrResps) {
             if (tmr.callback_url) {
-              this.selectedNumbers.push(tmr.DropId);
-              try {
-                const dto = tmr;
+              const pro = new Promise(async (resolve, reject) => {
                 try {
-                  // console.log('CALLBACK Record drop id', dto.DropId);
-                  logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
-                } catch (ex) {
+                  const dto = tmr;
+                  try {
+                    logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
+                  } catch (ex) {
 
+                  }
+                  const _callbackResponse = this.getResponseValues(dto);
+                  const dtoCopy = Object.assign({}, dto);
+                  delete dtoCopy._id;
+                  delete dto._id;
+                  delete dto.CallId;
+                  delete dto.SentToCallback;
+                  delete dto.DateCreated;
+                  delete dto.StartDate;
+                  delete dto.EndDate;
+                  delete dto.Attempts;
+                  delete dto.TotalSeconds;
+                  axios.post(tmr.callback_url, _callbackResponse).catch(err => {
+                    console.error(err);
+                    logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
+                    return undefined;
+                  });
+
+                  try {
+                    logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
+                  } catch (ex) {
+                    logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
+                  }
+
+                  if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
+                  dtoCopy.SentToCallback = true;
+                  await this._db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  await this._db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  await this._db.collection('responses').deleteOne({ DropId: dto.DropId })
+                  resolve();
+                } catch (err) {
+                  console.error('CALLBACK ERROR', err);
+                  process.send({ action: 'debug', message: err.stack });
+                  resolve();
                 }
-                const _callbackResponse = this.getResponseValues(dto);
-                const dtoCopy = Object.assign({}, dto);
-                delete dtoCopy._id;
-                delete dto._id;
-                delete dto.CallId;
-                delete dto.SentToCallback;
-                delete dto.DateCreated;
-                delete dto.StartDate;
-                delete dto.EndDate;
-                delete dto.Attempts;
-                delete dto.TotalSeconds;
-                axios.post(tmr.callback_url, _callbackResponse).catch(err => {
-                  console.error(err);
-                  logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
-                  return undefined;
-                });
-
-                try {
-                  logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
-                } catch (ex) {
-                  logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
-                }
-
-                dtoCopy.SentToCallback = true;
-                await db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                await db.collection('responses').deleteOne({ DropId: dto.DropId })
-
-              } catch (err) {
-                console.error('CALLBACK ERROR', err);
-                process.send({ action: 'debug', message: err.stack });
-
-              }
+              });
+              tmrArr.push(pro);
             }
-          });
-
-          console.log('not present after loop', this.selectedNumbers.length);
+            try {
+              process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
+              Promise.allSettled(tmrArr);
+              process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
+            } catch (err) {
+              process.send({ action: 'debug', message: err.stack });
+            }
+          }
         }
-        //this._callbackTimerObj = null;
+
+        this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       } catch (err) {
         process.send({ action: 'debug', message: err.stack });
-        // this._callbackTimerObj = null;
+        this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       }
-    }, 2000);
+    }, 1000);
   }
 };
 
