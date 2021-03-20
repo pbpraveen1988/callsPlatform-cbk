@@ -81,15 +81,16 @@ class RespHandler {
 
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK
   async _callbackTimer() {
-    console.log('CALLBACK TIMER')
+    console.log('CALLBACK TIMER');
+
+    const db = RinglessDB();
+    if (!db) {
+      this._callbackTimer();
+      return;
+    }
     // if (this._callbackTimerObj) { return; }
     setTimeout(async () => {
       try {
-        const db = RinglessDB();
-        if (!db) {
-          this._callbackTimer();
-          return;
-        }
         const tmrResps = await db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(1000).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
         const tmrArr = [];
@@ -100,7 +101,7 @@ class RespHandler {
               try {
                 const dto = tmr;
                 try {
-                  console.log('CALLBACK Record drop id', dto.DropId);
+                 // console.log('CALLBACK Record drop id', dto.DropId);
                   logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
                 } catch (ex) {
 
@@ -152,7 +153,7 @@ class RespHandler {
         this._callbackTimer();
         return;
       }
-    }, 1000);
+    }, 2000);
   }
 };
 
