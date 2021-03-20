@@ -80,7 +80,7 @@ class RespHandler {
 
 
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK
-  async _callbackTimer() {
+ _callbackTimer() {
     console.log('CALLBACK TIMER');
 
     const db = RinglessDB();
