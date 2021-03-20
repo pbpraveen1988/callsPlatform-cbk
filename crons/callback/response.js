@@ -81,7 +81,7 @@ class RespHandler {
 
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK 
   _callbackTimer() {
-    console.log('CALLBACK TIMER')
+    console.log('CALLBACK TIMER', moment().format("h:mm:ss a"))
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
