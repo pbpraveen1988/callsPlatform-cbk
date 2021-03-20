@@ -13,6 +13,7 @@ class RespHandler {
     this._callbackTimer();
     // this._respTimer();
     console.log('RESPONSE TIMER STARTED');
+    this.selectedNumbers = [];
 
   }
 
@@ -40,7 +41,7 @@ class RespHandler {
       }
     }
 
-     
+
 
     const _newValue = {};
     _newValue.uuid = dto.uuid;
@@ -49,7 +50,7 @@ class RespHandler {
     _newValue.timestamp = new Date();
     _newValue.number = dto.PhoneTo;
     _newValue.drop_callerid = dto.PhoneFrom;
-    _newValue.error_message = dto.ErrorMessage ;
+    _newValue.error_message = dto.ErrorMessage;
     if (_newValue.error_message != undefined && _newValue.error_message != '') {
       _newValue.status = 'failed';
     }
@@ -77,7 +78,7 @@ class RespHandler {
 
   _callbackTimer() {
     console.log('CALLBACK TIMER')
-   // if (this._callbackTimerObj) { return; }
+    // if (this._callbackTimerObj) { return; }
     setTimeout(async () => {
       try {
         const db = RinglessDB();
@@ -115,7 +116,7 @@ class RespHandler {
                     console.error(err);
                     logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
                     return undefined;
-                  });
+                  })
 
                   try {
                     logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
@@ -138,7 +139,7 @@ class RespHandler {
             }
             try {
               process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
-             // await Promise.allSettled(tmrArr);
+              // await Promise.allSettled(tmrArr);
               process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
             } catch (err) {
               process.send({ action: 'debug', message: err.stack });
@@ -146,12 +147,12 @@ class RespHandler {
           }
         }
 
-      //  this._callbackTimerObj = null;
+        //  this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       } catch (err) {
         process.send({ action: 'debug', message: err.stack });
-       // this._callbackTimerObj = null;
+        // this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       }
@@ -206,10 +207,10 @@ class RespHandler {
 
 
 
-
+  // CURRENTLY USING THIS FUNCTION FOR CALLBACK
   _callbackTimer() {
     console.log('CALLBACK TIMER')
-    if (this._callbackTimerObj) { return; }
+    // if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
         const db = RinglessDB();
@@ -218,13 +219,13 @@ class RespHandler {
           this._callbackTimer();
           return;
         }
-        const tmrResps = await db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(3500).toArray();
+        const tmrResps = await db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(1000).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
         const tmrArr = [];
         if (tmrResps.length) {
           tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
-             
+              this.selectedNumbers.push(dto.DropId);
               try {
                 const dto = tmr;
                 try {
@@ -260,21 +261,23 @@ class RespHandler {
                 await db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                 await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                 await db.collection('responses').deleteOne({ DropId: dto.DropId })
-               
+
               } catch (err) {
                 console.error('CALLBACK ERROR', err);
                 process.send({ action: 'debug', message: err.stack });
-               
+
               }
             }
           });
+
+          console.log('not present after loop', this.selectedNumbers.length);
         }
-        this._callbackTimerObj = null;
+        //this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       } catch (err) {
         process.send({ action: 'debug', message: err.stack });
-        this._callbackTimerObj = null;
+        // this._callbackTimerObj = null;
         this._callbackTimer();
         return;
       }
