@@ -14,15 +14,16 @@ class RespHandler {
     // this._respTimer();
     console.log('RESPONSE TIMER STARTED');
     this.selectedNumbers = [];
-
   }
 
   async initDB() {
-    const mongoUrl = 'mongodb://127.0.0.1:27017/RinglessVM';
-    const mongoDBName = 'RinglessVM';
-    this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, poolSize: 200, useUnifiedTopology: false });
-    this._db = this._conn.db(mongoDBName);
-    RinglessDB(this._db);
+    if (!this._db) {
+      const mongoUrl = 'mongodb://127.0.0.1:27017/RinglessVM';
+      const mongoDBName = 'RinglessVM';
+      this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, poolSize: 200 });
+      this._db = this._conn.db(mongoDBName);
+      RinglessDB(this._db);
+    }
   }
 
 
@@ -77,20 +78,19 @@ class RespHandler {
   }
 
 
-
-
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK 
   _callbackTimer() {
     console.log('CALLBACK TIMER', moment().format("h:mm:ss a"))
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
-        const tmrResps = await this._db.collection('responses').find({ SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(200).toArray();
-        console.log('CALLBACK Records Count', tmrResps && tmrResps.length);
+        const tmrResps = await this._db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(200).toArray();
+        console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps.length) {
           for (const tmr of tmrResps) {
             if (tmr.callback_url) {
+              this.selectedNumbers.push(tmr.DropId);
               const pro = new Promise(async (resolve, reject) => {
                 try {
                   const dto = tmr;
@@ -124,7 +124,7 @@ class RespHandler {
 
                   // if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
                   dtoCopy.SentToCallback = true;
-                  await this._db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  //await this._db.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await this._db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await this._db.collection('responses').deleteOne({ DropId: dto.DropId })
                   resolve();
