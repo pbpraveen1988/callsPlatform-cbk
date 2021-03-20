@@ -76,18 +76,17 @@ class RespHandler {
     return _newValue;
   }
 
-  
- 
+
+
 
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK
-  _callbackTimer() {
+  async _callbackTimer() {
     console.log('CALLBACK TIMER')
     // if (this._callbackTimerObj) { return; }
-    this._callbackTimerObj = setTimeout(async () => {
+   
       try {
         const db = RinglessDB();
         if (!db) {
-          this._callbackTimerObj = null;
           this._callbackTimer();
           return;
         }
@@ -153,7 +152,7 @@ class RespHandler {
         this._callbackTimer();
         return;
       }
-    }, 1000);
+    
   }
 };
 
