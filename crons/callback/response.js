@@ -84,11 +84,12 @@ class RespHandler {
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
-        const tmrResps = await this._db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null] } }).limit(200).toArray();
+        const tmrResps = await this._db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
-        if (tmrResps.length) {
-          for (const tmr of tmrResps) {
+
+        if (tmrResps && tmrResps.length) {
+          tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
               this.selectedNumbers.push(tmr.DropId);
               const pro = new Promise(async (resolve, reject) => {
@@ -136,9 +137,7 @@ class RespHandler {
               });
               tmrArr.push(pro);
             }
-          }
-
-
+          });
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
             Promise.allSettled(tmrArr);
