@@ -156,8 +156,10 @@ class RespHandler {
           }
         }
 
-        this._callbackTimerObj = null;
-        this._callbackTimer();
+        setTimeout(() => {
+          this._callbackTimerObj = null;
+          this._callbackTimer();
+        }, 2 * 1000)
         return;
       } catch (err) {
         process.send({ action: 'debug', message: err.stack });
