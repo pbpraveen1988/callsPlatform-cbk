@@ -159,7 +159,7 @@ class RespHandler {
         this._callbackTimer();
         return;
       }
-    }, 3000);
+    }, 5000);
   }
 
   async __updateRecords() {
