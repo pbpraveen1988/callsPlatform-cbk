@@ -82,11 +82,7 @@ class RespHandler {
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
-        const session = this._conn.startSession();
-        session.startTransaction({
-          readConcern: { level: 'snapshot' },
-          writeConcern: { w: 'majority' }
-        });
+
         const tmrResps = await this._conn.db('RinglessVM').collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
@@ -95,6 +91,11 @@ class RespHandler {
           session.startTransaction();
           tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
+              const session = this._conn.startSession();
+              session.startTransaction({
+                readConcern: { level: 'snapshot' },
+                writeConcern: { w: 'majority' }
+              });
               this.selectedNumbers.push(tmr.DropId);
               const pro = new Promise(async (resolve, reject) => {
                 try {
@@ -133,19 +134,20 @@ class RespHandler {
                   await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
                   resolve();
+
                 } catch (err) {
                   console.error('CALLBACK ERROR', err);
                   process.send({ action: 'debug', message: err.stack });
                   resolve();
                 }
               });
+              await session.commitTransaction();
               tmrArr.push(pro);
             }
           });
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
             await session.commitTransaction();
-
             await Promise.allSettled(tmrArr);
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
