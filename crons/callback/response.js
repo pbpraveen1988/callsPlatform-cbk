@@ -204,17 +204,18 @@ class RespHandler {
       console.log('less than 1000')
       const db = RinglessDB();
       const _respones = await db.collection('responses').find({}).toArray();
-      if (_respones.length < 1000) {
+      if (_respones.length <= 1000) {
         const selectedNumbers = [...this.selectedNumbers];
         const updatedNumber = [...this.needToUpdate];
         this.needToUpdate = [];
         this.selectedNumbers = [];
-
+        console.log('BEFORE COMMAND 1000')
         await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
         await db.collection('responses_history').insertMany(updatedNumber);
+        console.log('AFTER COMMAND 1000')
       }
       // this._callbackTimer()
-      setTimeout(() => this.__updateRecords(), 10 * 1000)
+      setTimeout(() => this.__updateRecords(), 5 * 1000)
 
     }
   }
