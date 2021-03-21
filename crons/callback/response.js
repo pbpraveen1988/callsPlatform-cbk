@@ -203,6 +203,11 @@ class RespHandler {
       const db = RinglessDB();
       const _respones = await db.collection('responses').find({}).toArray();
       if (_respones.length < 1000) {
+        const selectedNumbers = [...this.selectedNumbers];
+        const updatedNumber = [...this.needToUpdate];
+        this.needToUpdate = [];
+        this.selectedNumbers = [];
+
         await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
         await db.collection('responses_history').insertMany(updatedNumber);
       }
