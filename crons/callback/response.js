@@ -11,6 +11,7 @@ class RespHandler {
     this._callbackTimerObj = null;
     this.initDB();
     this._callbackTimer();
+    this.needToUpdate = [];
     // this._respTimer();
     console.log('RESPONSE TIMER STARTED');
     this.selectedNumbers = [];
@@ -87,19 +88,15 @@ class RespHandler {
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
-          const session = this._conn.startSession();
           tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
-
               this.selectedNumbers.push(tmr.DropId);
               const pro = new Promise(async (resolve, reject) => {
                 try {
                   const dto = tmr;
                   try {
                     logger.addContext('campaignId', 'CALLBACK_' + dto.CampaignId);
-                  } catch (ex) {
-
-                  }
+                  } catch (ex) { }
                   const _callbackResponse = this.getResponseValues(dto);
                   const dtoCopy = Object.assign({}, dto);
                   delete dtoCopy._id;
@@ -111,34 +108,31 @@ class RespHandler {
                   delete dto.EndDate;
                   delete dto.Attempts;
                   delete dto.TotalSeconds;
-                  axios.post(tmr.callback_url, _callbackResponse).catch(err => {
-                    console.error(err);
-                    logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
-                    return undefined;
-                  });
+                  // axios.post(tmr.callback_url, _callbackResponse).catch(err => {
+                  //   console.error(err);
+                  //   logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
+                  //   return undefined;
+                  // });
 
-                  try {
-                    logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
-                  } catch (ex) {
-                    logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
-                  }
+                  // try {
+                  //   logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
+                  // } catch (ex) {
+                  //   logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
+                  // }
 
-                  session.startTransaction({
-                    readConcern: { level: 'snapshot' },
-                    writeConcern: { w: 'majority' }
-                  });
+
                   // if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
                   dtoCopy.SentToCallback = true;
-                  await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
-                  await session.commitTransaction();
-                  session.endSession();
+                  this.needToUpdate.push(dtoCopy);
+                  // await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  // await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  //await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
+
                   resolve();
                 } catch (err) {
                   console.error('CALLBACK ERROR', err);
                   process.send({ action: 'debug', message: err.stack });
-                  await session.commitTransaction();
+                  // await session.commitTransaction();
                   resolve();
                 }
               });
@@ -147,14 +141,9 @@ class RespHandler {
           });
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
-            // await session.commitTransaction();
-            await Promise.allSettled(tmrArr).then(res => {
-              session.endSession();
-            });
-
+            Promise.allSettled(tmrArr);
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
-            //
             process.send({ action: 'debug', message: err.stack });
           }
         }
@@ -170,6 +159,10 @@ class RespHandler {
       }
     }, 1000);
   }
+
+
+
+
 };
 
 module.exports = RespHandler;
