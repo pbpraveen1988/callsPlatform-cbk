@@ -12,7 +12,7 @@ class RespHandler {
     this.needToUpdate = [];
     this.selectedNumbers = [];
     this.updateGoing = null;
-    await this.initDB();
+     this.initDB();
     this._callbackTimer();
     this.__updateRecords();
     // this._respTimer();
