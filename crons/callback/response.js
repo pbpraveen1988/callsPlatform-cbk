@@ -87,7 +87,7 @@ class RespHandler {
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
-
+          const session = this._conn.startSession();
           tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
 
@@ -122,7 +122,7 @@ class RespHandler {
                   } catch (ex) {
                     logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
                   }
-                  const session = this._conn.startSession();
+
                   session.startTransaction({
                     readConcern: { level: 'snapshot' },
                     writeConcern: { w: 'majority' }
@@ -148,15 +148,17 @@ class RespHandler {
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
             // await session.commitTransaction();
-            await Promise.allSettled(tmrArr);
-          
+            await Promise.allSettled(tmrArr).then(res => {
+              session.endSession();
+            });
+
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
-            //session.endSession();
+            //
             process.send({ action: 'debug', message: err.stack });
           }
         }
-        
+
         this._callbackTimerObj = null;
         this._callbackTimer();
         return;
