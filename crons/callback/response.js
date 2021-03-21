@@ -82,13 +82,19 @@ class RespHandler {
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK 
   _callbackTimer() {
     console.log('CALLBACK TIMER', moment().format("h:mm:ss a"))
-    if (this._callbackTimerObj || this.updateGoing) { return; }
+    if (this._callbackTimerObj || this.updateGoing) {
+      console.log('GONING BACK');
+      return;
+
+    }
 
     const db = RinglessDB();
 
     this._callbackTimerObj = setTimeout(async () => {
       try {
+        console.log('BEFORE DB CALL');
         const tmrResps = await db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
+        console.log('BEFORE DB CALL');
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
@@ -188,8 +194,9 @@ class RespHandler {
       this._callbackTimer()
       this.__updateRecords();
     } else {
-      this._callbackTimer()
-      this.__updateRecords();
+      // this._callbackTimer()
+      setTimeout(() => this.__updateRecords(), 10 * 1000)
+
     }
   }
 
