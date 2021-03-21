@@ -134,6 +134,7 @@ class RespHandler {
                   console.error('CALLBACK ERROR', err);
                   process.send({ action: 'debug', message: err.stack });
                   // await session.commitTransaction();
+
                   resolve();
                 }
               });
@@ -158,7 +159,7 @@ class RespHandler {
         this._callbackTimer();
         return;
       }
-    }, 1000);
+    }, 3000);
   }
 
   async __updateRecords() {
