@@ -175,6 +175,14 @@ class RespHandler {
       return;
     }
 
+    const db = RinglessDB();
+    if (!db) {
+      setTimeout(() => {
+        this.__updateRecords()
+      }, 2000);
+      return;
+    }
+
     if (this.needToUpdate.length > 1000) {
 
       console.log('MORE THAN  1000');
