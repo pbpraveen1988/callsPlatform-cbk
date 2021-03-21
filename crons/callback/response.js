@@ -83,9 +83,12 @@ class RespHandler {
   _callbackTimer() {
     console.log('CALLBACK TIMER', moment().format("h:mm:ss a"))
     if (this._callbackTimerObj || this.updateGoing) { return; }
+
+    const db = RinglessDB();
+
     this._callbackTimerObj = setTimeout(async () => {
       try {
-        const tmrResps = await this._conn.db('RinglessVM').collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
+        const tmrResps = await db.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
