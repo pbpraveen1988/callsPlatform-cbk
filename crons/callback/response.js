@@ -12,7 +12,7 @@ class RespHandler {
     this.needToUpdate = [];
     this.selectedNumbers = [];
     this.updateGoing = null;
-     this.initDB();
+    this.initDB();
     this._callbackTimer();
     this.__updateRecords();
     // this._respTimer();
@@ -209,10 +209,12 @@ class RespHandler {
         const updatedNumber = [...this.needToUpdate];
         this.needToUpdate = [];
         this.selectedNumbers = [];
-        console.log('BEFORE COMMAND 1000')
-        await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
-        await db.collection('responses_history').insertMany(updatedNumber);
-        console.log('AFTER COMMAND 1000')
+        if (selectedNumbers.length > 0) {
+          console.log('BEFORE COMMAND 1000')
+          await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
+          await db.collection('responses_history').insertMany(updatedNumber);
+          console.log('AFTER COMMAND 1000')
+        }
       }
       // this._callbackTimer()
       setTimeout(() => this.__updateRecords(), 5 * 1000)
