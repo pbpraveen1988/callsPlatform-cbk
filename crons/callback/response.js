@@ -181,6 +181,8 @@ class RespHandler {
       });
       this.updateGoing = null;
       console.log('MAKING NULL');
+      this._callbackTimer()
+      this.__updateRecords();
     } else {
       this._callbackTimer()
       this.__updateRecords();
