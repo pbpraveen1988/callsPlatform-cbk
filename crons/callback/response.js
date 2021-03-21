@@ -9,11 +9,11 @@ class RespHandler {
   constructor() {
     this._respTimerObj = null;
     this._callbackTimerObj = null;
+    this.needToUpdate = [];
+    this.updateGoing = null;
     this.initDB();
     this._callbackTimer();
     this.__updateRecords();
-    this.needToUpdate = [];
-    this.updateGoing = null;
     // this._respTimer();
     console.log('RESPONSE TIMER STARTED');
     this.selectedNumbers = [];
