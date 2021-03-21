@@ -19,8 +19,8 @@ class RespHandler {
   async initDB() {
     const mongoUrl = 'mongodb://127.0.0.1:27017/RinglessVM';
     const mongoDBName = 'RinglessVM';
-    const _conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, poolSize: 400 });
-    const db = _conn.db(mongoDBName);
+    this._conn = await MongoClient.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, poolSize: 400 });
+    const db = this._conn.db(mongoDBName);
     RinglessDB(db);
   }
 
@@ -82,11 +82,17 @@ class RespHandler {
     if (this._callbackTimerObj) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
-        const __dbs = RinglessDB();
-        const tmrResps = await __dbs.collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
+        const session = this._conn.startSession();
+        session.startTransaction({
+          readConcern: { level: 'snapshot' },
+          writeConcern: { w: 'majority' }
+        });
+        const tmrResps = await this._conn.db('RinglessVM').collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
+          const session = __dbs.getMongo().startSession();
+          session.startTransaction();
           tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
               this.selectedNumbers.push(tmr.DropId);
@@ -123,9 +129,9 @@ class RespHandler {
 
                   // if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
                   dtoCopy.SentToCallback = true;
-                  await __dbs.collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  await __dbs.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  await __dbs.collection('responses').deleteOne({ DropId: dto.DropId })
+                  await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+                  await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
                   resolve();
                 } catch (err) {
                   console.error('CALLBACK ERROR', err);
@@ -138,9 +144,12 @@ class RespHandler {
           });
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
+            await session.commitTransaction();
+            session.endSession();
             await Promise.allSettled(tmrArr);
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
+            session.endSession();
             process.send({ action: 'debug', message: err.stack });
           }
         }
