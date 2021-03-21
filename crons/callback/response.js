@@ -11,7 +11,9 @@ class RespHandler {
     this._callbackTimerObj = null;
     this.initDB();
     this._callbackTimer();
+    this.__updateRecords();
     this.needToUpdate = [];
+    this.updateGoing = null;
     // this._respTimer();
     console.log('RESPONSE TIMER STARTED');
     this.selectedNumbers = [];
@@ -80,10 +82,9 @@ class RespHandler {
   // CURRENTLY USING THIS FUNCTION FOR CALLBACK 
   _callbackTimer() {
     console.log('CALLBACK TIMER', moment().format("h:mm:ss a"))
-    if (this._callbackTimerObj) { return; }
+    if (this._callbackTimerObj || this.updateGoing) { return; }
     this._callbackTimerObj = setTimeout(async () => {
       try {
-
         const tmrResps = await this._conn.db('RinglessVM').collection('responses').find({ DropId: { $nin: this.selectedNumbers }, SentToCallback: { $in: [null, false] }, callback_url: { $nin: [null, false] } }).limit(200).toArray();
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
@@ -108,25 +109,22 @@ class RespHandler {
                   delete dto.EndDate;
                   delete dto.Attempts;
                   delete dto.TotalSeconds;
-                  // axios.post(tmr.callback_url, _callbackResponse).catch(err => {
-                  //   console.error(err);
-                  //   logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
-                  //   return undefined;
-                  // });
+                  axios.post(tmr.callback_url, _callbackResponse).catch(err => {
+                    console.error(err);
+                    logger.debug('ERROR ON CALLBACK', typeof (err) === 'object' ? JSON.stringify(err) : err);
+                    return undefined;
+                  });
 
-                  // try {
-                  //   logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
-                  // } catch (ex) {
-                  //   logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
-                  // }
+                  try {
+                    logger.debug('Success Request payload', typeof (_callbackResponse) === 'object' ? JSON.stringify(_callbackResponse) : _callbackResponse);
+                  } catch (ex) {
+                    logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
+                  }
 
 
                   // if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
                   dtoCopy.SentToCallback = true;
                   this.needToUpdate.push(dtoCopy);
-                  // await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  // await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-                  //await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
 
                   resolve();
                 } catch (err) {
@@ -158,6 +156,35 @@ class RespHandler {
         return;
       }
     }, 1000);
+  }
+
+  __updateRecords() {
+    if (this.updateGoing) {
+      return;
+    }
+
+    if (this.needToUpdate.length > 1000) {
+
+      console.log('MORE THAN  1000');
+      const selectedNumbers = [...this.selectedNumbers];
+      const updatedNumber = [...this.needToUpdate];
+      this.needToUpdate = [];
+      this.selectedNumbers = [];
+
+      this.updateGoing = true;
+      const db = RinglessDB();
+      await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
+      updatedNumber.forEach(async dtoCopy => {
+        // await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+        await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
+        //await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
+      });
+      this.updateGoing = null;
+      console.log('MAKING NULL');
+    } else {
+      this._callbackTimer()
+      this.__updateRecords();
+    }
   }
 
 
