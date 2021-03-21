@@ -201,6 +201,7 @@ class RespHandler {
       //this._callbackTimer()
       setTimeout(() => this.__updateRecords(), 5 * 1000)
     } else {
+      console.log('less than 1000')
       const db = RinglessDB();
       const _respones = await db.collection('responses').find({}).toArray();
       if (_respones.length < 1000) {
