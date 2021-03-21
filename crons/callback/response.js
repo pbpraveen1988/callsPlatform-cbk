@@ -158,7 +158,7 @@ class RespHandler {
     }, 1000);
   }
 
-  __updateRecords() {
+  async __updateRecords() {
     if (this.updateGoing) {
       return;
     }
