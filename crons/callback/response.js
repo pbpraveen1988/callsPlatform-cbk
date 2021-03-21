@@ -145,15 +145,15 @@ class RespHandler {
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
             await session.commitTransaction();
-            session.endSession();
+
             await Promise.allSettled(tmrArr);
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
-            session.endSession();
+            //session.endSession();
             process.send({ action: 'debug', message: err.stack });
           }
         }
-
+        session.endSession();
         this._callbackTimerObj = null;
         this._callbackTimer();
         return;
