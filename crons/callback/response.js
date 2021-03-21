@@ -186,15 +186,11 @@ class RespHandler {
       this.updateGoing = true;
       const db = RinglessDB();
       await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
-      updatedNumber.forEach(async dtoCopy => {
-        // await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-        await db.collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
-        //await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
-      });
+      await db.collection('responses_history').insertMany(updatedNumber);
       this.updateGoing = null;
       console.log('MAKING NULL');
-      this._callbackTimer()
-      this.__updateRecords();
+      //this._callbackTimer()
+      setTimeout(() => this.__updateRecords(), 5 * 1000)
     } else {
       // this._callbackTimer()
       setTimeout(() => this.__updateRecords(), 10 * 1000)
