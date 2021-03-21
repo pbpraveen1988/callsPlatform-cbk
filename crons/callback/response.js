@@ -87,15 +87,10 @@ class RespHandler {
         console.log('CALLBACK Records Count', tmrResps && tmrResps.length, this.selectedNumbers.length);
         const tmrArr = [];
         if (tmrResps && tmrResps.length) {
-          const session = __dbs.getMongo().startSession();
-          session.startTransaction();
+
           tmrResps && tmrResps.forEach(async tmr => {
             if (tmr.callback_url) {
-              const session = this._conn.startSession();
-              session.startTransaction({
-                readConcern: { level: 'snapshot' },
-                writeConcern: { w: 'majority' }
-              });
+
               this.selectedNumbers.push(tmr.DropId);
               const pro = new Promise(async (resolve, reject) => {
                 try {
@@ -127,35 +122,41 @@ class RespHandler {
                   } catch (ex) {
                     logger.debug('SUCCESS ON CALLBACK', "ERROR ON CALLBACK LOG with payload", JSON.stringify(_callbackResponse));
                   }
-
+                  const session = this._conn.startSession();
+                  session.startTransaction({
+                    readConcern: { level: 'snapshot' },
+                    writeConcern: { w: 'majority' }
+                  });
                   // if (config.isDebugMode) { process.send({ action: 'debug', message: `DropId: ${dto.DropId} response sent to callbackUrl` }); }
                   dtoCopy.SentToCallback = true;
                   await this._conn.db('RinglessVM').collection('responses').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await this._conn.db('RinglessVM').collection('responses_history').replaceOne({ DropId: dtoCopy.DropId }, dtoCopy, { upsert: true });
                   await this._conn.db('RinglessVM').collection('responses').deleteOne({ DropId: dto.DropId })
+                  await session.commitTransaction();
+                  session.endSession();
                   resolve();
-
                 } catch (err) {
                   console.error('CALLBACK ERROR', err);
                   process.send({ action: 'debug', message: err.stack });
+                  await session.commitTransaction();
                   resolve();
                 }
               });
-              await session.commitTransaction();
               tmrArr.push(pro);
             }
           });
           try {
             process.send({ action: 'debug', message: `Waiting for ${tmrArr.length} response records...` });
-            await session.commitTransaction();
+            // await session.commitTransaction();
             await Promise.allSettled(tmrArr);
+          
             process.send({ action: 'debug', message: `${tmrArr.length} Responses completed Sending...` });
           } catch (err) {
             //session.endSession();
             process.send({ action: 'debug', message: err.stack });
           }
         }
-        session.endSession();
+        
         this._callbackTimerObj = null;
         this._callbackTimer();
         return;
