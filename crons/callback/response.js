@@ -192,7 +192,7 @@ class RespHandler {
       //this._callbackTimer()
       setTimeout(() => this.__updateRecords(), 5 * 1000)
     } else {
-
+      const db = RinglessDB();
       const _respones = await db.collection('responses').find({}).toArray();
       if (_respones.length < 1000) {
         await db.collection('responses').deleteMany({ DropId: { $in: selectedNumbers } });
